@@ -1,0 +1,23 @@
+[package]
+name = "port-killer"
+version = "0.1.0"
+edition = "2024"
+authors = ["vianch"]
+description = "TUI tool to view listening TCP ports and kill processes"
+license = "Apache-2.0"
+repository = "https://github.com/vianch/port-killer"
+readme = "README.md"
+keywords = ["port", "kill", "tui", "network", "process"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+ratatui = "0.30"
+crossterm = "0.28"
+color-eyre = "0.6"
+nix = { version = "0.29", features = ["signal", "process"] }
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+opt-level = "z"
