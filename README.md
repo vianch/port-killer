@@ -5,6 +5,11 @@ A fast TUI tool to view all listening TCP ports and kill processes. Built in Rus
 ![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue)
 
+<img width="929" height="298" alt="Screenshot 2026-04-07 at 14 17 45" src="https://github.com/user-attachments/assets/3f86e45a-becc-4dfc-a0d8-b92b828466c2" />
+<img width="930" height="317" alt="Screenshot 2026-04-07 at 14 17 57" src="https://github.com/user-attachments/assets/82c96522-da59-45bf-9192-d48f949b9ad5" />
+<img width="924" height="300" alt="Screenshot 2026-04-07 at 14 18 11" src="https://github.com/user-attachments/assets/2b9fb9ac-a78b-420a-975e-a6269238dca9" />
+
+
 ## Install
 
 ### Homebrew
