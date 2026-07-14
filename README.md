@@ -40,6 +40,13 @@ cargo install --git https://github.com/vianch/port-killer
 port-killer
 ```
 
+## Create an alias for quick access
+
+```sh
+echo 'alias k=port-killer' >> ~/.zshrc
+source ~/.zshrc
+```
+
 ### Keybindings
 
 | Key | Action |
