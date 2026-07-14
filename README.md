@@ -21,6 +21,13 @@ brew tap vianch/tap
 brew install port-killer
 ```
 
+#### or
+
+```sh
+brew trust vianch/tap
+brew update && brew upgrade port-killer.
+```
+
 ### From source
 
 ```sh
