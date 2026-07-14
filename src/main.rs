@@ -7,13 +7,19 @@ use std::io;
 use std::time::Duration;
 
 use crossterm::{
-    event::{self, Event, KeyCode, KeyModifiers},
+    event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers, MouseButton,
+        MouseEventKind,
+    },
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::{Terminal, backend::CrosstermBackend, layout::Rect};
 
 use app::{App, AppMode};
+
+/// Poll interval for the main event loop.
+const TICK_RATE: Duration = Duration::from_millis(250);
 
 fn main() -> color_eyre::Result<()> {
     // Handle --version before TUI setup
@@ -28,7 +34,7 @@ fn main() -> color_eyre::Result<()> {
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
@@ -39,7 +45,11 @@ fn main() -> color_eyre::Result<()> {
 
     // Restore terminal
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
     terminal.show_cursor()?;
 
     result
@@ -49,18 +59,24 @@ fn run_app(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     app: &mut App,
 ) -> color_eyre::Result<()> {
-    let tick_rate = Duration::from_millis(250);
-
     loop {
         terminal.draw(|frame| ui::render(frame, app))?;
 
-        if event::poll(tick_rate)? {
-            if let Event::Key(key) = event::read()? {
-                // Skip key release events (Windows/some terminals send these)
-                if key.kind != event::KeyEventKind::Press {
-                    continue;
+        if event::poll(TICK_RATE)? {
+            match event::read()? {
+                Event::Key(key) => {
+                    // Skip key release events (Windows/some terminals send these)
+                    if key.kind != event::KeyEventKind::Press {
+                        continue;
+                    }
+                    handle_key_event(app, key)?;
                 }
-                handle_key_event(app, key)?;
+                Event::Mouse(mouse) => {
+                    let size = terminal.size()?;
+                    let area = Rect::new(0, 0, size.width, size.height);
+                    handle_mouse_event(app, area, mouse);
+                }
+                _ => {}
             }
         }
 
@@ -69,6 +85,22 @@ fn run_app(
         if app.should_quit {
             return Ok(());
         }
+    }
+}
+
+fn handle_mouse_event(app: &mut App, area: Rect, mouse: event::MouseEvent) {
+    if app.mode != AppMode::Normal {
+        return;
+    }
+    if mouse.kind != MouseEventKind::Down(MouseButton::Left) {
+        return;
+    }
+
+    let layout = ui::compute_layout(area, app.mode);
+    if let Some(column) = ui::column_at(layout.table, mouse.column, mouse.row) {
+        app.set_sort_column(column);
+    } else if let Some(offset) = ui::row_at(layout.table, mouse.row) {
+        app.select_visible_row(offset);
     }
 }
 
@@ -84,9 +116,11 @@ fn handle_key_event(app: &mut App, key: event::KeyEvent) -> color_eyre::Result<(
             KeyCode::Char('q') => app.should_quit = true,
             KeyCode::Up | KeyCode::Char('k') => app.move_selection_up(),
             KeyCode::Down | KeyCode::Char('j') => app.move_selection_down(),
-            KeyCode::Enter => app.request_kill(),
+            KeyCode::Enter => app.request_kill(false),
+            KeyCode::Char('K') => app.request_kill(true),
             KeyCode::Char('/') => app.enter_input_mode(),
             KeyCode::Char('r') => app.refresh_ports()?,
+            KeyCode::Char('s') => app.cycle_sort_column(),
             _ => {}
         },
         AppMode::Input => match key.code {
